@@ -15,7 +15,7 @@ setup(name='statsite',
       author_email='biz@kiip.me',
       maintainer='Kiip',
       maintainer_email='biz@kiip.me',
-      url='https://github.com/kiip/statsite',
+      url='https://github.com/ndowning/statsite',
       keywords=['statsite', 'graphite', 'graph', 'metrics'],
       packages=find_packages(exclude=["tests", "tests.*"]),
       entry_points={
