@@ -9,7 +9,7 @@ except:
 
 setup(name='statsite',
       version=statsite.__version__,
-      description='Statistics server which sends data to Graphite.',
+      description='Statistics server which sends data to Graphite (with Nick\'s sampled data fixes)',
       long_description=readme_content,
       author='Kiip',
       author_email='biz@kiip.me',
