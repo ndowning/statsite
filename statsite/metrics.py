@@ -64,7 +64,7 @@ class Counter(Metric):
     def _fold(self, accum):
         accum.setdefault(self.key, 0)
         sample_rate = self.flag if self.flag else 1.0
-        accum[self.key] += self.value / (1 / sample_rate)
+        accum[self.key] += self.value * (1 / sample_rate)
 
 
 class Timer(Metric):
