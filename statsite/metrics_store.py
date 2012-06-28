@@ -17,12 +17,40 @@ class MetricsStore(object):
     potentially be called by multiple flushing aggregators.
     """
 
+    def __init__(self):
+
+        # List of functions called for each metric value sent to this store.
+        # The (key, value, timestamp) tuple is passed to the filter function,
+        # which returns true to allow the metric through.
+        self.filters = []
+
+    def _filter_metrics(self, metrics):
+        if len(self.filters) == 0:
+            return metrics
+
+        return [m for m in metrics if any(f(m) for f in self.filters)]
+
+    def _flush(self, metrics):
+        """
+        This method is called by aggregators when flushing data after the
+        store's filters have been applied.
+        This must be thread-safe.
+
+       :Parameters:
+        - `metrics` : A list of (key,value,timestamp) tuples.
+        """
+        raise NotImplementedError("flush not implemented")
+
     def flush(self, metrics):
         """
         This method is called by aggregators when flushing data.
         This must be thread-safe.
+
+       :Parameters:
+        - `metrics` : A list of (key,value,timestamp) tuples.
         """
-        raise NotImplementedError("flush not implemented")
+        filtered_metrics = self._filter_metrics(metrics)
+        if len(filtered_metrics) > 0: self._flush(filtered_metrics)
 
 class GraphiteStore(MetricsStore):
     def __init__(self, host="localhost", port=2003, prefix="statsite", attempts=3):
@@ -36,6 +64,8 @@ class GraphiteStore(MetricsStore):
             - `prefix` (optional) : A prefix to add to the keys. Defaults to 'statsite'
             - `attempts` (optional) : The number of re-connect retries before failing.
         """
+        super(GraphiteStore, self).__init__()
+
         # Convert the port to an int since its coming from a configuration file
         port = int(port)
 
@@ -50,7 +80,7 @@ class GraphiteStore(MetricsStore):
         self.sock = self._create_socket()
         self.logger = logging.getLogger("statsite.graphitestore")
 
-    def flush(self, metrics):
+    def _flush(self, metrics):
         """
         Flushes the metrics provided to Graphite.
 
