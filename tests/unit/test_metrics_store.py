@@ -24,6 +24,7 @@ class TestGraphiteStore(TestBase):
 
         # Flush the metrics and verify that graphite sees the
         # proper results
+        store.open()
         store.flush(metrics)
         store.close()
 

@@ -52,6 +52,9 @@ class MetricsStore(object):
         filtered_metrics = self._filter_metrics(metrics)
         if len(filtered_metrics) > 0: self._flush(filtered_metrics)
 
+    def load(self, settings):
+        pass
+
 class GraphiteStore(MetricsStore):
     def __init__(self, host="localhost", port=2003, prefix="statsite", attempts=3):
         """
@@ -66,9 +69,6 @@ class GraphiteStore(MetricsStore):
         """
         super(GraphiteStore, self).__init__()
 
-        # Convert the port to an int since its coming from a configuration file
-        port = int(port)
-
         if port <= 0: raise ValueError, "Port must be positive!"
         if attempts <= 1: raise ValueError, "Must have at least 1 attempt!"
 
@@ -77,8 +77,36 @@ class GraphiteStore(MetricsStore):
         self.prefix = prefix
         self.attempts = attempts
         self.sock_lock = threading.Lock()
-        self.sock = self._create_socket()
+        self.sock = None
         self.logger = logging.getLogger("statsite.graphitestore")
+
+    def load(self, settings):
+        super(GraphiteStore, self).load(settings)
+
+        self.host = settings.pop('host', self.host)
+        self.prefix = settings.pop('prefix', self.prefix)
+
+        port = int(settings.pop('port', self.port))
+        if port <= 0: raise ValueError, "Port must be positive!"
+        self.port = port
+
+        attempts = int(settings.pop('attempts', self.attempts))
+        if attempts <= 1: raise ValueError, "Must have at least 1 attempt!"
+        self.attempts = attempts
+
+    def open(self):
+        if self.sock is not None: raise Error, "Store is already open"
+        self.sock = self._create_socket()
+
+    def _create_socket(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((self.host, self.port))
+        return sock
+
+    def close(self):
+        if self.sock is not None:
+            self.sock.close()
+            self.sock = None
 
     def _flush(self, metrics):
         """
@@ -98,19 +126,6 @@ class GraphiteStore(MetricsStore):
             self.logger.exception("Failed to write out the metrics!")
         finally:
             self.sock_lock.release()
-
-    def close(self):
-        """
-        Closes the connection. The socket will be recreated on the next
-        flush.
-        """
-        self.sock.close()
-
-    def _create_socket(self):
-        """Creates a socket and connects to the graphite server"""
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((self.host,self.port))
-        return sock
 
     def _write_metric(self, metric):
         """Tries to write a string to the socket, reconnecting on any errors"""

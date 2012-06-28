@@ -20,7 +20,9 @@ class TestStatsite(TestBase):
                 "class": "tests.helpers.DumbCollector"
             },
             "store": {
-                "class": "tests.helpers.DumbMetricsStore"
+                "graphite": {
+                    "class": "tests.helpers.DumbMetricsStore"
+                }
             }
         }
 
@@ -33,7 +35,7 @@ class TestStatsite(TestBase):
         """
         assert statsite_dummy.collector
         assert statsite_dummy.aggregator is statsite_dummy.collector.aggregator
-        assert statsite_dummy.store is statsite_dummy.aggregator.metrics_store
+        #assert statsite_dummy._flush_metrics is statsite_dummy.aggregator.metrics_store
 
     def test_flush_and_switch_aggregator(self, statsite_dummy):
         """

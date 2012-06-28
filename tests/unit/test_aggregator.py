@@ -42,7 +42,7 @@ class TestDefaultAggregator(TestBase):
         collected metrics to the metric store.
         """
         now = 17
-        agg = DefaultAggregator(metrics_store)
+        agg = DefaultAggregator(lambda metrics: metrics_store.flush(metrics))
         agg.add_metrics([KeyValue("k", 1, now)])
         agg.add_metrics([KeyValue("k", 2, now)])
         agg.flush()

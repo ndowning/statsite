@@ -94,8 +94,9 @@ class StatsiteCommand(object):
 
         for section in config.sections():
             settings_section = section if section != self.TOPLEVEL_CONFIG_SECTION else None
+            settings = self._load_section_settings(settings_section)
             for (key, value) in config.items(section):
-                self._add_setting(settings_section, key, value)
+                self._add_setting(settings, key, value)
 
     def _parse_settings_from_options(self):
         """
@@ -109,34 +110,31 @@ class StatsiteCommand(object):
         # Set the generic options
         for setting in self.options.settings:
             key, value = setting.split("=", 2)
-            section, key = key.split(".", 2)
-            self._add_setting(section, key, value)
+            self._add_setting(self.settings, key, value)
 
-    def _add_setting(self, section, key, value):
+    def _load_section_settings(self, section):
+        current = self.settings
+
+        if section is not None:
+            for part in section.split('.'):
+                current = current.setdefault(part, {})
+
+        return current
+
+    def _add_setting(self, current, key, value):
         """
         Adds settings to a specific section.
         """
-        if section is None:
-            # If section is 'None' then we put the key/value
-            # in the top-level settings
-            current = self.settings
-        else:
-            # Otherwise we put it in the proper section...
-            self.settings.setdefault(section, {})
+        
+        # Split the key by "." characters and make sure
+        # that each character nests the dictionary further
+        parts = key.split(".")
 
-            # Split the key by "." characters and make sure
-            # that each character nests the dictionary further
-            current = self.settings[section]
-            parts = key.split(".")
-            for part in parts[:-1]:
-                current.setdefault(part, {})
-                current = current[part]
-
-            # The key is now the last of the dot-separated parts
-            key = parts[-1]
+        for part in parts[:-1]:
+            current = current.setdefault(part, {})
 
         # Finally set the value onto the settings
-        current[key] = value
+        current[parts[-1]] = value
 
 def main():
     "The main entrypoint for the statsite command line program."
