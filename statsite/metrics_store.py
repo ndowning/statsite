@@ -5,6 +5,7 @@ Contains the base metrics store class and default metrics store class.
 import socket
 import threading
 import logging
+import fnmatch
 
 class MetricsStore(object):
     """
@@ -53,7 +54,16 @@ class MetricsStore(object):
         if len(filtered_metrics) > 0: self._flush(filtered_metrics)
 
     def load(self, settings):
-        pass
+        filters = settings.get('filters', '').strip()
+
+        self.filters = []
+
+        for filter in [f.strip() for f in filters.split(',')]:
+            if len(filter) > 0:
+                self.filters.append(self._create_filter(filter))
+
+    def _create_filter(self, pattern):
+        return lambda name: fnmatch.fnmatch(name, pattern)
 
 class GraphiteStore(MetricsStore):
     def __init__(self, host="localhost", port=2003, prefix="statsite", attempts=3):
@@ -83,14 +93,14 @@ class GraphiteStore(MetricsStore):
     def load(self, settings):
         super(GraphiteStore, self).load(settings)
 
-        self.host = settings.pop('host', self.host)
-        self.prefix = settings.pop('prefix', self.prefix)
+        self.host = settings.get('host', self.host)
+        self.prefix = settings.get('prefix', self.prefix)
 
-        port = int(settings.pop('port', self.port))
+        port = int(settings.get('port', self.port))
         if port <= 0: raise ValueError, "Port must be positive!"
         self.port = port
 
-        attempts = int(settings.pop('attempts', self.attempts))
+        attempts = int(settings.get('attempts', self.attempts))
         if attempts <= 1: raise ValueError, "Must have at least 1 attempt!"
         self.attempts = attempts
 
