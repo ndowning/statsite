@@ -96,6 +96,9 @@ class Statsite(object):
             self.store[name] = cls()
             self.store[name].load(self.settings["store"][name])
 
+            if len(self.settings["store"][name]) > 0:
+                self.logger.warn("Unknown settings in store." + name + ": " + str(self.settings["store"][name]))
+
         # Setup the aggregator, provide the store
         self.settings["aggregator"]["metrics_store"] = self._flush_metrics
         self.logger.debug("Initializing aggregator: %s" % self._aggregator_cls)
