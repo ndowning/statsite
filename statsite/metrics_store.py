@@ -5,6 +5,7 @@ Contains the base metrics store class and default metrics store class.
 import socket
 import threading
 import logging
+import fnmatch
 
 class MetricsStore(object):
     """
@@ -53,7 +54,16 @@ class MetricsStore(object):
         if len(filtered_metrics) > 0: self._flush(filtered_metrics)
 
     def load(self, settings):
-        pass
+        filters = settings.pop('filters', '').strip()
+
+        self.filters = []
+
+        for filter in [f.strip() for f in filters.split(',')]:
+            if len(filter) > 0:
+                self.filters.append(self._create_filter(filter))
+
+    def _create_filter(self, pattern):
+        return lambda name: fnmatch.fnmatch(name, pattern)
 
 class GraphiteStore(MetricsStore):
     def __init__(self, host="localhost", port=2003, prefix="statsite", attempts=3):
