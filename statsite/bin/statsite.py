@@ -94,6 +94,10 @@ class StatsiteCommand(object):
 
         for section in config.sections():
             settings_section = section if section != self.TOPLEVEL_CONFIG_SECTION else None
+
+            # Support old config files. Map store => store.graphite.
+            if settings_section == 'store': settings_section = 'store.graphite'
+
             settings = self._load_section_settings(settings_section)
             for (key, value) in config.items(section):
                 self._add_setting(settings, key, value)
@@ -125,7 +129,6 @@ class StatsiteCommand(object):
         """
         Adds settings to a specific section.
         """
-        
         # Split the key by "." characters and make sure
         # that each character nests the dictionary further
         parts = key.split(".")
