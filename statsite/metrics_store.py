@@ -63,7 +63,7 @@ class MetricsStore(object):
                 self.filters.append(self._create_filter(filter))
 
     def _create_filter(self, pattern):
-        return lambda name: fnmatch.fnmatch(name, pattern)
+        return lambda metric: fnmatch.fnmatch(metric[0], pattern)
 
 class GraphiteStore(MetricsStore):
     def __init__(self, host="localhost", port=2003, prefix="statsite", attempts=3):
