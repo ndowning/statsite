@@ -20,7 +20,7 @@ Statsite v%(version)s
 [components]
   . collector: %(collector_cls)s
   . aggregator: %(aggregator_cls)s
-  . store:      %(store_cls)s
+%(store_cls)s
 
 [configuration]
 %(configuration)s
@@ -46,7 +46,6 @@ class Statsite(object):
             "class": "collector.UDPCollector"
         },
         "store": {
-            "class": "metrics_store.GraphiteStore"
         },
         "metrics": {}
     }
@@ -63,7 +62,7 @@ class Statsite(object):
         self.settings = deep_merge(self.DEFAULT_SETTINGS, settings)
 
         # Resolve the classes for each component
-        for component in ["aggregator", "collector", "store"]:
+        for component in ["aggregator", "collector"]:
             key   = "_%s_cls" % component
             value = resolve_class_string(self.settings[component]["class"])
 
@@ -75,22 +74,30 @@ class Statsite(object):
             # Set the attribute on ourself for use everywhere else
             setattr(self, key, value)
 
+        self._store_cls = {}
+        for key, value in self.settings['store'].iteritems():
+            store_cls_name = 'metrics_store.' + key[0].upper() + key[1:] + 'Store'
+            self._store_cls[key] = resolve_class_string(value.pop('class', store_cls_name))
+
         # Setup the logger
         self.logger = logging.getLogger("statsite.statsite")
         self.logger.info(BANNER % {
                 "version": __version__,
                 "collector_cls": self._collector_cls,
                 "aggregator_cls": self._aggregator_cls,
-                "store_cls": self._store_cls,
+                "store_cls": '\n'.join(['  . store.' + k + ': ' + str(v) for k, v in self._store_cls.items()]),
                 "configuration": pprint.pformat(self.settings, width=60, indent=2)
         })
 
-        # Setup the store
-        self.logger.debug("Initializing metrics store: %s" % self._store_cls)
-        self.store = self._store_cls(**self.settings["store"])
+        # Setup the stores
+        self.store = {}
+        for name, cls in self._store_cls.iteritems():
+            self.logger.debug("Initializing metrics store: %s" % name)
+            self.store[name] = cls()
+            self.store[name].load(self.settings["store"][name])
 
         # Setup the aggregator, provide the store
-        self.settings["aggregator"]["metrics_store"] = self.store
+        self.settings["aggregator"]["metrics_store"] = self._flush_metrics
         self.logger.debug("Initializing aggregator: %s" % self._aggregator_cls)
         self.aggregator = self._create_aggregator()
 
@@ -110,6 +117,9 @@ class Statsite(object):
         """
         self.logger.info("Statsite starting")
         self._reset_timer()
+
+        for store in self.store.itervalues():
+            store.open()
 
         if self.settings["aliveness_check"]["enabled"]:
             self._enable_aliveness_check()
@@ -131,6 +141,13 @@ class Statsite(object):
 
         self._disable_aliveness_check()
         self.collector.shutdown()
+
+        for store in self.store.itervalues():
+            store.close()
+
+    def _flush_metrics(self, metrics):
+        for store in self.store.itervalues():
+            store.flush(metrics)
 
     def _enable_aliveness_check(self):
         """

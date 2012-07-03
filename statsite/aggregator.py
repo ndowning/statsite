@@ -104,7 +104,7 @@ class DefaultAggregator(Aggregator):
 
         try:
             if data:
-                self.metrics_store.flush(data)
+                self.metrics_store(data)
         except:
             self.logger.exception("Failed to flush data")
 
