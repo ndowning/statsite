@@ -6,6 +6,7 @@ import logging
 import pprint
 import SocketServer
 import threading
+import metrics
 
 from . import __version__
 from aggregator import DefaultAggregator
@@ -78,6 +79,10 @@ class Statsite(object):
         for key, value in self.settings['store'].iteritems():
             store_cls_name = 'metrics_store.' + key[0].upper() + key[1:] + 'Store'
             self._store_cls[key] = resolve_class_string(value.pop('class', store_cls_name))
+
+        for metric_type, metric_settings in self.settings["metrics"].iteritems():
+            metric_cls = metrics.METRIC_TYPES[metric_type]
+            metric_cls.parse_settings(metric_settings)
 
         # Setup the logger
         self.logger = logging.getLogger("statsite.statsite")

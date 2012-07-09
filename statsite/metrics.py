@@ -30,6 +30,16 @@ class Metric(object):
         self.flag = flag
 
     @classmethod
+    def parse_settings(cls, settings):
+        """
+        Parse configuration options for this metric.
+
+        :Parameters:
+            - `settings` : metric configuration options
+        """
+        pass
+
+    @classmethod
     def fold(cls, lst, now):
         """
         Takes a list of the metrics objects and emits lists of (key,value,timestamp)
@@ -71,6 +81,14 @@ class Timer(Metric):
     """
     Represents timing metrics, provided by the 'ms' type.
     """
+
+    @classmethod
+    def parse_settings(cls, settings):
+        super(Timer, cls).parse_settings(settings)
+
+        if 'percentile' in settings:
+            settings['percentile'] = int(settings['percentile'])
+
     @classmethod
     def fold(cls, lst, now, percentile=90):
         accumulator = {}
