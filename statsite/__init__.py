@@ -2,4 +2,4 @@
 Statsite package contains all the classes related to statsite.
 """
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
